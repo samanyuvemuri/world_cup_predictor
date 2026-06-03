@@ -1,99 +1,306 @@
-Full-Stack World Cup Simulation Engine
-An end-to-end Machine Learning microservice and web application designed to predict the outcomes of the 2026 FIFA World Cup.
+# 🌍 FIFA World Cup 2026 Simulation Engine
 
-Unlike standard binary win/loss predictors, this engine utilizes an XGBoost classifier to output exact match probabilities (Win/Draw/Loss), calculates Expected Points (xPts), and mathematically simulates the entire 72-match group stage to generate real-time tournament standings.
+An end-to-end Machine Learning microservice and web application designed to predict the outcomes of the **2026 FIFA World Cup**.
 
-🚀 Key Features
-Dynamic Feature Engineering: Instead of relying on static data, the backend dynamically calculates historical ELO ratings, recent goal form (last 5 matches), and schedule congestion (rest days) on the fly for any requested matchup.
+Unlike traditional binary win/loss predictors, this engine leverages an **XGBoost classifier** to generate exact match outcome probabilities (**Win / Draw / Loss**), calculate **Expected Points (xPts)**, and mathematically simulate the entire tournament group stage to produce projected standings and qualifiers.
 
-Optimized Draw Probabilities: The XGBoost model utilizes custom class weights to accurately predict international football's most difficult outcome: the draw.
+---
 
-FastAPI Microservice: The ML model is serialized and served via a lightning-fast, asynchronous Python API, completely decoupling the prediction engine from the frontend UI.
+## 🚀 Features
 
-Tournament Simulator: A custom Python simulation loop that processes the entire World Cup schedule, aggregates Expected Points, and mathematically determines the knockout stage qualifiers.
+### ⚽ Match Outcome Prediction
 
-💻 Tech Stack
-Machine Learning & Data Engineering
+Predicts the probability of each possible match result:
 
-Algorithm: XGBoost Classifier
+* Home Win
+* Draw
+* Away Win
 
-Data Manipulation: Pandas, NumPy
+Returns calibrated probabilities instead of a single prediction.
 
-Serialization: Joblib
+### 📊 Dynamic Feature Engineering
 
-Backend & MLOps
+Rather than relying on static precomputed features, the backend dynamically generates match-specific inputs:
 
-Framework: FastAPI, Uvicorn
+* Historical ELO Ratings
+* Recent Goal Form (last 5 matches)
+* Schedule Congestion / Rest Days
+* ELO Differentials
+* Form Differentials
 
-Deployment: Docker, Google Cloud Run (Planned)
+This allows the API to generate predictions for any requested matchup in real time.
 
-Frontend (Work in Progress)
+### 🎯 Optimized Draw Prediction
 
-Framework: Next.js (App Router), React
+International football draws are notoriously difficult to model.
 
-Styling: Tailwind CSS
+The XGBoost classifier utilizes custom class weighting and probability calibration techniques to improve draw prediction performance while maintaining overall model accuracy.
 
-🏗️ Architecture
-Plaintext
+### ⚡ FastAPI Prediction Service
+
+The trained model is serialized with Joblib and served through a high-performance FastAPI microservice.
+
+Benefits include:
+
+* Asynchronous request handling
+* Decoupled ML architecture
+* Easy frontend integration
+* Production-ready deployment
+
+### 🏆 Tournament Simulator
+
+A custom simulation engine processes the official World Cup group-stage schedule:
+
+* Simulates all 72 group-stage matches
+* Calculates Expected Points (xPts)
+* Aggregates team performance
+* Generates projected group standings
+* Determines likely knockout-stage qualifiers
+
+---
+
+## 💻 Tech Stack
+
+### Machine Learning & Data Engineering
+
+| Component           | Technology         |
+| ------------------- | ------------------ |
+| Algorithm           | XGBoost Classifier |
+| Data Processing     | Pandas             |
+| Numerical Computing | NumPy              |
+| Model Serialization | Joblib             |
+
+### Backend & MLOps
+
+| Component        | Technology                 |
+| ---------------- | -------------------------- |
+| API Framework    | FastAPI                    |
+| ASGI Server      | Uvicorn                    |
+| Containerization | Docker (Planned)           |
+| Cloud Deployment | Google Cloud Run (Planned) |
+
+### Frontend (Work in Progress)
+
+| Component  | Technology           |
+| ---------- | -------------------- |
+| Framework  | Next.js (App Router) |
+| UI Library | React                |
+| Styling    | Tailwind CSS         |
+
+---
+
+## 🏗️ Project Architecture
+
+```text
 worldcup-backend/
-├── data/                    # Master schedule and historical ELO/Results CSVs
-├── services/                
-│   └── feature_builder.py   # Dynamically calculates form and ELO differentials
-├── main.py                  # FastAPI routing and expected points (xPts) logic
-└── xgboost_worldcup.pkl     # Serialized prediction model
-🔌 API Reference
-1. Head-to-Head Predictor
-Simulates a single match between any two teams and returns exact outcome probabilities.
+│
+├── data/
+│   ├── schedule.csv
+│   ├── elo_ratings.csv
+│   └── historical_results.csv
+│
+├── services/
+│   └── feature_builder.py
+│
+├── main.py
+│
+├── xgboost_worldcup.pkl
+│
+└── requirements.txt
+```
 
-Endpoint: POST /api/head-to-head
+### Directory Breakdown
 
-Payload: ```json
+#### `data/`
+
+Contains:
+
+* Historical international match results
+* ELO ratings
+* Official World Cup schedule
+
+#### `services/feature_builder.py`
+
+Responsible for dynamically generating:
+
+* ELO differentials
+* Goal form metrics
+* Rest day calculations
+* Match-specific features
+
+#### `main.py`
+
+Handles:
+
+* FastAPI routing
+* Prediction requests
+* Expected Points (xPts) calculations
+* Tournament simulations
+
+#### `xgboost_worldcup.pkl`
+
+Serialized XGBoost model used by the API.
+
+---
+
+## 🔌 API Reference
+
+### Head-to-Head Predictor
+
+Simulates a single match between any two teams and returns outcome probabilities.
+
+**Endpoint**
+
+```http
+POST /api/head-to-head
+```
+
+**Request Body**
+
+```json
 {
-"home_team": "Mexico",
-"away_team": "South Africa",
-"is_neutral": 0
+  "home_team": "Mexico",
+  "away_team": "South Africa",
+  "is_neutral": 0
 }
+```
 
+**Example Response**
 
-2. Group Stage Simulator
-Loops through the official 72-match schedule, calculates xPts for every team, and returns the sorted standings for all 12 groups.
+```json
+{
+  "home_win": 0.47,
+  "draw": 0.28,
+  "away_win": 0.25,
+  "expected_points_home": 1.69,
+  "expected_points_away": 1.03
+}
+```
 
-Endpoint: GET /api/simulate/groups
+---
 
-⚙️ Getting Started (Local Development)
-Prerequisites
-Python 3.10+
+### Group Stage Simulator
 
-pip
+Simulates the entire World Cup group stage and generates projected standings.
 
-Installation & Setup
-Clone the repository
+**Endpoint**
 
-Bash
-git clone https://github.com/[Your-Username]/world-cup-predictor.git
+```http
+GET /api/simulate/groups
+```
+
+**Example Response**
+
+```json
+{
+  "Group A": [
+    {
+      "team": "Mexico",
+      "xPts": 5.8
+    },
+    {
+      "team": "Switzerland",
+      "xPts": 5.1
+    }
+  ]
+}
+```
+
+---
+
+## ⚙️ Local Development Setup
+
+### Prerequisites
+
+* Python 3.10+
+* pip
+
+---
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/<your-username>/world-cup-predictor.git
+
 cd world-cup-predictor/worldcup-backend
-Install dependencies
+```
 
-Bash
+### 2. Install Dependencies
+
+```bash
 pip install -r requirements.txt
-Run the FastAPI server
+```
 
-Bash
+### 3. Run the FastAPI Server
+
+```bash
 uvicorn main:app --reload
-Test the API
-Navigate to http://localhost:8000/docs in your browser to interact with the auto-generated Swagger UI and test the endpoints.
+```
 
-🗺️ Roadmap
-[x] Train baseline Random Forest and XGBoost models
+### 4. Test the API
 
-[x] Engineer dynamic rolling features (ELO, Goal Form, Rest Days)
+Open your browser and navigate to:
 
-[x] Build FastAPI backend and serialize model
+```text
+http://localhost:8000/docs
+```
 
-[x] Create Expected Points (xPts) group stage simulation loop
+FastAPI will automatically generate interactive Swagger documentation for testing endpoints.
 
-[ ] Containerize API with Docker
+---
 
-[ ] Build interactive Next.js dashboard for Head-to-Head and Group Tables
+## 📈 Machine Learning Pipeline
 
-[ ] Deploy full-stack application to the cloud
+### Data Sources
+
+* Historical international match results
+* FIFA/ELO rating datasets
+* Tournament schedule data
+
+### Engineered Features
+
+* Team ELO Rating
+* ELO Differential
+* Goals Scored (Last 5 Matches)
+* Goals Conceded (Last 5 Matches)
+* Goal Difference Form
+* Rest Days
+* Neutral Venue Indicator
+
+### Model Selection
+
+Models evaluated:
+
+* Logistic Regression
+* Random Forest
+* XGBoost
+
+Final model:
+
+✅ **XGBoost Classifier**
+
+Selected for superior multiclass classification performance and probability calibration.
+
+---
+
+## 🗺️ Roadmap
+
+### Completed
+
+* [x] Train various models to determine the most effective one
+* [x] Engineer dynamic rolling features
+* [x] Build FastAPI backend
+* [x] Serialize model with Joblib
+* [x] Implement Expected Points (xPts) calculations
+* [x] Create full group-stage simulation engine
+
+### In Progress
+
+* [ ] Docker containerization
+* [ ] Interactive Next.js dashboard
+* [ ] Tournament visualization UI
+* [ ] Cloud deployment on Google Cloud Run
+* [ ] Monte Carlo tournament simulations
+* [ ] Knockout-stage probability projections
+
+---
