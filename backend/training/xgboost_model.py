@@ -7,8 +7,8 @@ from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
 # loads both of my csv files
-df_matches = pd.read_csv('results.csv')
-df_elo = pd.read_csv('eloratings.csv')
+df_matches = pd.read_csv('data/results.csv')
+df_elo = pd.read_csv('data/eloratings.csv')
 
 # converts dates to actual datetime
 df_matches['date'] = pd.to_datetime(df_matches['date'])
