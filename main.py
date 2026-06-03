@@ -68,14 +68,51 @@ df_merge['outcome'] = df_merge.apply(get_outcome, axis=1)
 df_merge['elo_diff'] = df_merge['home_elo'] - df_merge['away_elo']
 df_merge['is_neutral'] = df_merge['neutral'].astype(int)
 
+# create a unified timeline of all matches for every team
+home_history = df_merge[['date', 'home_team', 'home_score', 'away_score']].copy()
+home_history.columns = ['date', 'team', 'goals_scored', 'goals_allowed']
+
+away_history = df_merge[['date', 'away_team', 'away_score', 'home_score']].copy()
+away_history.columns = ['date', 'team', 'goals_scored', 'goals_allowed']
+
+# combine, sort by team and then by date to ensure chronological order
+team_history = pd.concat([home_history, away_history]).sort_values(['team', 'date'])
+
+# calculate rolling averages for the last 5 overall games (excluding the current match)
+team_history['goals_scored_l5'] = team_history.groupby('team')['goals_scored'].transform(lambda x: x.rolling(5, closed='left').mean())
+team_history['goals_allowed_l5'] = team_history.groupby('team')['goals_allowed'].transform(lambda x: x.rolling(5, closed='left').mean())
+
+# drop the redundant columns before merging back to keep things clean
+team_history = team_history[['date', 'team', 'goals_scored_l5', 'goals_allowed_l5']]
+
+# merge these overall stats back into your main dataframe
+# merge for the home team
+df_merge = pd.merge(
+    df_merge, 
+    team_history.rename(columns={
+        'team': 'home_team', 
+        'goals_scored_l5': 'home_goals_scored_l5', 
+        'goals_allowed_l5': 'home_goals_allowed_l5'
+    }),
+    on=['date', 'home_team'],
+    how='left'
+)
+
+# merge for the away team
+df_merge = pd.merge(
+    df_merge, 
+    team_history.rename(columns={
+        'team': 'away_team', 
+        'goals_scored_l5': 'away_goals_scored_l5', 
+        'goals_allowed_l5': 'away_goals_allowed_l5'
+    }),
+    on=['date', 'away_team'],
+    how='left'
+)
+
 # filter for the "modern" era of football, made the cutoff ~20 years ago
 # filters to ~20k rows
 df_modern = df_merge[df_merge['date'] > '2006-01-01']
-
-# quantifying a team's recent offensive form
-df_modern = df_modern.sort_values('date')
-df_modern['home_goals_l5'] = df_modern.groupby('home_team')['home_score'].transform(lambda x: x.rolling(5, closed='left').mean())
-df_modern['away_goals_l5'] = df_modern.groupby('away_team')['away_score'].transform(lambda x: x.rolling(5, closed='left').mean())
 
 # 2 = fifa world cup match, 1 = other, 0 = friendly exhibition
 conditions = [
@@ -86,7 +123,13 @@ choices = [2, 0]
 df_modern['is_competitive'] = np.select(conditions, choices, default=1)
 
 # train / test split
-features = ['home_elo', 'away_elo', 'elo_diff', 'is_neutral', 'home_goals_l5', 'away_goals_l5', 'is_competitive']
+features = [
+    'home_elo', 'away_elo', 'elo_diff', 'is_neutral', 
+    'home_goals_scored_l5', 'home_goals_allowed_l5', 
+    'away_goals_scored_l5', 'away_goals_allowed_l5', 
+    'is_competitive'
+]
+df_modern = df_modern.dropna(subset=features)
 X = df_modern[features]
 y = df_modern['outcome']
 
@@ -100,7 +143,6 @@ model.fit(X_train, y_train)
 prediction = model.predict(X_test)
 print(f"Model Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
-print(df_modern)
 # results:
 # model baseline accuracy: 56.95%
 
