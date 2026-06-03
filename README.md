@@ -97,14 +97,21 @@ worldcup-backend/
 ├── data/
 │   ├── schedule.csv
 │   ├── elo_ratings.csv
+|   ├── groups.json
 │   └── historical_results.csv
 │
 ├── services/
 │   └── feature_builder.py
 │
+├── training/
+│   ├── randomforest_model.py
+│   └── xgboost_model.py
+│
 ├── main.py
 │
-├── xgboost_worldcup.pkl
+├── xgboost_worldcup_model.pkl
+│
+├── Dockerfile
 │
 └── requirements.txt
 ```
