@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+from xgboost import XGBClassifier
 
 # loads both of my csv files
 df_matches = pd.read_csv('results.csv')
@@ -144,18 +145,47 @@ prediction = model.predict(X_test)
 print(f"Model Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
 # results:
-# model baseline accuracy: 56.95%
+# model baseline accuracy: 57.21%
 
 #              precision    recall  f1-score   support
 #
-#    away win       0.55      0.55      0.55      1032
-#        draw       0.28      0.15      0.19       833
-#    home win       0.64      0.78      0.71      1738
+#    away win       0.54      0.55      0.55      1009
+#        draw       0.32      0.14      0.20       847
+#    home win       0.63      0.79      0.70      1729
 
-#    accuracy                           0.57      3603
-#   macro avg       0.49      0.49      0.48      3603
-#     wtd avg       0.53      0.57      0.54      3603
+#    accuracy                           0.57      3585
+#   macro avg       0.50      0.50      0.48      3585
+#     wtd avg       0.53      0.57      0.54      3585
 
 #######################################################################################################################
 
-# implement xgboost next to see if accuracy increases
+# fitting xgboost classifier
+# objective 'multi:softmax' is standard for multi-class classification
+model = XGBClassifier(
+    n_estimators=150, 
+    learning_rate=0.1, 
+    max_depth=5, 
+    random_state=7,
+    objective='multi:softmax',
+    num_class=3
+)
+
+model.fit(X_train, y_train)
+
+# model evaluation: xgboost classifier
+prediction = model.predict(X_test)
+print(f"XGBoost Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
+print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
+
+# results:
+# model baseline accuracy: 58.72%
+
+#              precision    recall  f1-score   support
+#
+#    away win       0.54      0.59      0.56      1009
+#        draw       0.36      0.04      0.07       847
+#    home win       0.62      0.85      0.72      1729
+
+#    accuracy                           0.59      3585
+#   macro avg       0.51      0.49      0.45      3585
+#     wtd avg       0.54      0.59      0.52      3585
