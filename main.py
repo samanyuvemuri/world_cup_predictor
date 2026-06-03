@@ -14,8 +14,10 @@ class MatchRequest(BaseModel):
     away_elo: float
     elo_diff: float
     is_neutral: int
-    home_goals_l5: float
-    away_goals_l5: float
+    home_goals_scored_l5: float
+    home_goals_allowed_l5: float
+    away_goals_scored_l5: float
+    away_goals_allowed_l5: float
     is_competitive: int
     home_rest: float
     away_rest: float
@@ -25,13 +27,14 @@ class MatchRequest(BaseModel):
 @app.post("/predict")
 def predict_match(match: MatchRequest):
     # convert incoming json payload to a dataframe
-    input_data = pd.DataFrame([match.model_dump()])
-    
+    input_data = pd.DataFrame([match.model_dump() if hasattr(match, 'model_dump') else match.dict()])  
+
     # ensure the columns match exactly what x_train had
     features = [
         'home_elo', 'away_elo', 'elo_diff', 'is_neutral', 
-        'home_goals_l5', 'away_goals_l5', 'is_competitive',
-        'home_rest', 'away_rest', 'rest_diff'
+        'home_goals_scored_l5', 'home_goals_allowed_l5', 
+        'away_goals_scored_l5', 'away_goals_allowed_l5', 
+        'is_competitive', 'home_rest', 'away_rest', 'rest_diff'
     ]
     X_input = input_data[features]
     
