@@ -53,19 +53,19 @@ filtered_elo = filtered_elo.sort_values('date')
 # merging the last recorded elo rating at the time of each match to its corresponding home and away teams
 df_merge = pd.merge_asof(
     filtered_matches, 
-    filtered_elo[['date', 'team', 'rating', 'elo_momentum']].rename(columns={'team': 'home_team'}),
+    filtered_elo[['date', 'team', 'rating']].rename(columns={'team': 'home_team'}),
     on='date', 
     by='home_team', 
     direction='backward'
-).rename(columns={'rating': 'home_elo', 'elo_momentum': 'home_elo_momentum'})
+).rename(columns={'rating': 'home_elo'})
 
 df_merge = pd.merge_asof(
     df_merge, 
-    filtered_elo[['date', 'team', 'rating', 'elo_momentum']].rename(columns={'team': 'away_team'}),
+    filtered_elo[['date', 'team', 'rating']].rename(columns={'team': 'away_team'}),
     on='date', 
     by='away_team', 
     direction='backward'
-).rename(columns={'rating': 'away_elo', 'elo_momentum': 'away_elo_momentum'})
+).rename(columns={'rating': 'away_elo'})
 
 # removing data without any elo ratings, before 1901
 df_merge = df_merge.dropna(subset=['home_elo', 'away_elo'])
@@ -140,7 +140,7 @@ features = [
     'home_elo', 'away_elo', 'elo_diff', 'is_neutral', 
     'home_goals_scored_l5', 'home_goals_allowed_l5', 
     'away_goals_scored_l5', 'away_goals_allowed_l5', 
-    'is_competitive', 'home_elo_momentum', 'away_elo_momentum'
+    'is_competitive'
 ]
 df_modern = df_modern.dropna(subset=features)
 X = df_modern[features]
@@ -177,7 +177,7 @@ print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw'
 # define custom weight factors
 weight_dict = {
     0: 1.0,
-    1: 1.4,
+    1: 1.5,
     2: 1.0,
 }
 
