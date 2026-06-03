@@ -91,12 +91,17 @@ away_history.columns = ['date', 'team', 'goals_scored', 'goals_allowed']
 # combine, sort by team and then by date to ensure chronological order
 team_history = pd.concat([home_history, away_history]).sort_values(['team', 'date'])
 
-# calculate rolling averages for the last 5 overall games (excluding the current match)
+# calculate rolling averages for form
 team_history['goals_scored_l5'] = team_history.groupby('team')['goals_scored'].transform(lambda x: x.rolling(5, closed='left').mean())
 team_history['goals_allowed_l5'] = team_history.groupby('team')['goals_allowed'].transform(lambda x: x.rolling(5, closed='left').mean())
 
-# drop the redundant columns before merging back to keep things clean
-team_history = team_history[['date', 'team', 'goals_scored_l5', 'goals_allowed_l5']]
+# calculate schedule congestion
+team_history['prev_match_date'] = team_history.groupby('team')['date'].shift(1)
+team_history['rest_days'] = (team_history['date'] - team_history['prev_match_date']).dt.days
+team_history['rest_days'] = team_history['rest_days'].fillna(7).clip(upper=14)
+
+# drop redundant columns before merging
+team_history = team_history[['date', 'team', 'goals_scored_l5', 'goals_allowed_l5', 'rest_days']]
 
 # merge these overall stats back into your main dataframe
 # merge for the home team
@@ -105,7 +110,8 @@ df_merge = pd.merge(
     team_history.rename(columns={
         'team': 'home_team', 
         'goals_scored_l5': 'home_goals_scored_l5', 
-        'goals_allowed_l5': 'home_goals_allowed_l5'
+        'goals_allowed_l5': 'home_goals_allowed_l5',
+        'rest_days': 'home_rest'
     }),
     on=['date', 'home_team'],
     how='left'
@@ -117,11 +123,15 @@ df_merge = pd.merge(
     team_history.rename(columns={
         'team': 'away_team', 
         'goals_scored_l5': 'away_goals_scored_l5', 
-        'goals_allowed_l5': 'away_goals_allowed_l5'
+        'goals_allowed_l5': 'away_goals_allowed_l5',
+        'rest_days': 'away_rest'
     }),
     on=['date', 'away_team'],
     how='left'
 )
+
+# calculate the final rest difference feature
+df_merge['rest_diff'] = df_merge['home_rest'] - df_merge['away_rest']
 
 # filter for the "modern" era of football, made the cutoff ~20 years ago
 # filters to ~20k rows
@@ -140,7 +150,7 @@ features = [
     'home_elo', 'away_elo', 'elo_diff', 'is_neutral', 
     'home_goals_scored_l5', 'home_goals_allowed_l5', 
     'away_goals_scored_l5', 'away_goals_allowed_l5', 
-    'is_competitive'
+    'is_competitive', 'home_rest', 'away_rest', 'rest_diff'
 ]
 df_modern = df_modern.dropna(subset=features)
 X = df_modern[features]
@@ -158,17 +168,17 @@ print(f"RandomForest Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
 
 # results:
-# model baseline accuracy: 57.21%
+# randomforest baseline accuracy: 57.60%
 
 #              precision    recall  f1-score   support
 #
-#    away win       0.54      0.55      0.55      1009
-#        draw       0.32      0.14      0.20       847
-#    home win       0.63      0.79      0.70      1729
+#    away win       0.54      0.57      0.56      1009
+#        draw       0.33      0.11      0.16       847
+#    home win       0.62      0.81      0.70      1729
 
-#    accuracy                           0.57      3585
-#   macro avg       0.50      0.50      0.48      3585
-#     wtd avg       0.53      0.57      0.54      3585
+#    accuracy                           0.58      3585
+#   macro avg       0.50      0.50      0.47      3585
+#     wtd avg       0.53      0.58      0.53      3585
 
 #######################################################################################################################
 
@@ -202,14 +212,14 @@ print(f"XGBoost Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
 
 # results:
-# model baseline accuracy: 58.72%
+# xgboost baseline accuracy: 57.13%
 
 #              precision    recall  f1-score   support
 #
-#    away win       0.54      0.59      0.56      1009
-#        draw       0.36      0.04      0.07       847
-#    home win       0.62      0.85      0.72      1729
+#    away win       0.60      0.47      0.53      1009
+#        draw       0.32      0.32      0.32       847
+#    home win       0.67      0.75      0.71      1729
 
-#    accuracy                           0.59      3585
-#   macro avg       0.51      0.49      0.45      3585
-#     wtd avg       0.54      0.59      0.52      3585
+#    accuracy                           0.57      3585
+#   macro avg       0.53      0.52      0.52      3585
+#     wtd avg       0.57      0.57      0.57      3585
