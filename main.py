@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
 # loads both of my csv files
@@ -37,23 +38,34 @@ name_map = {
 }
 filtered_elo['team'] = filtered_elo['team'].replace(name_map)
 
+# sort by team and then by date to ensure proper chronological shifting
+filtered_elo = filtered_elo.sort_values(['team', 'date'])
+
+# grab the rating from exactly five games ago for each team
+filtered_elo['rating_5_ago'] = filtered_elo.groupby('team')['rating'].shift(5)
+
+# calculate momentum (positive means they are hot, negative means they are slumping)
+filtered_elo['elo_momentum'] = filtered_elo['rating'] - filtered_elo['rating_5_ago']
+
+# sort back by date so merge_asof works correctly
+filtered_elo = filtered_elo.sort_values('date')
 
 # merging the last recorded elo rating at the time of each match to its corresponding home and away teams
 df_merge = pd.merge_asof(
     filtered_matches, 
-    filtered_elo[['date', 'team', 'rating']].rename(columns={'team': 'home_team'}),
+    filtered_elo[['date', 'team', 'rating', 'elo_momentum']].rename(columns={'team': 'home_team'}),
     on='date', 
     by='home_team', 
     direction='backward'
-).rename(columns={'rating': 'home_elo'})
+).rename(columns={'rating': 'home_elo', 'elo_momentum': 'home_elo_momentum'})
 
 df_merge = pd.merge_asof(
     df_merge, 
-    filtered_elo[['date', 'team', 'rating']].rename(columns={'team': 'away_team'}),
+    filtered_elo[['date', 'team', 'rating', 'elo_momentum']].rename(columns={'team': 'away_team'}),
     on='date', 
     by='away_team', 
     direction='backward'
-).rename(columns={'rating': 'away_elo'})
+).rename(columns={'rating': 'away_elo', 'elo_momentum': 'away_elo_momentum'})
 
 # removing data without any elo ratings, before 1901
 df_merge = df_merge.dropna(subset=['home_elo', 'away_elo'])
@@ -128,7 +140,7 @@ features = [
     'home_elo', 'away_elo', 'elo_diff', 'is_neutral', 
     'home_goals_scored_l5', 'home_goals_allowed_l5', 
     'away_goals_scored_l5', 'away_goals_allowed_l5', 
-    'is_competitive'
+    'is_competitive', 'home_elo_momentum', 'away_elo_momentum'
 ]
 df_modern = df_modern.dropna(subset=features)
 X = df_modern[features]
@@ -142,8 +154,9 @@ model.fit(X_train, y_train)
 
 # model evaluation: random forest classifier
 prediction = model.predict(X_test)
-print(f"Model Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
+print(f"RandomForest Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
+
 # results:
 # model baseline accuracy: 57.21%
 
@@ -160,17 +173,28 @@ print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw'
 #######################################################################################################################
 
 # fitting xgboost classifier
-# objective 'multi:softmax' is standard for multi-class classification
+
+# define custom weight factors
+weight_dict = {
+    0: 1.0,
+    1: 1.4,
+    2: 1.0,
+}
+
+# map these weights to training set targets
+sample_weights = y_train.map(weight_dict)
+
+# pass the weights into the fitting process
 model = XGBClassifier(
-    n_estimators=150, 
-    learning_rate=0.1, 
-    max_depth=5, 
+    n_estimators=180, 
+    learning_rate=0.05, 
+    max_depth=4, 
     random_state=7,
     objective='multi:softmax',
     num_class=3
 )
 
-model.fit(X_train, y_train)
+model.fit(X_train, y_train, sample_weight=sample_weights)
 
 # model evaluation: xgboost classifier
 prediction = model.predict(X_test)
