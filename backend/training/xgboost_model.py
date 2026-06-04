@@ -7,8 +7,8 @@ from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
 # loads both of my csv files
-df_matches = pd.read_csv('data/results.csv')
-df_elo = pd.read_csv('data/eloratings.csv')
+df_matches = pd.read_csv('/Users/samanyuvemuri/Desktop/projectFiles/world_cup_predictor/backend/data/results.csv')
+df_elo = pd.read_csv('/Users/samanyuvemuri/Desktop/projectFiles/world_cup_predictor/backend/data/eloratings.csv')
 
 # converts dates to actual datetime
 df_matches['date'] = pd.to_datetime(df_matches['date'])
@@ -131,8 +131,8 @@ df_merge = pd.merge(
 # calculate the final rest difference feature
 df_merge['rest_diff'] = df_merge['home_rest'] - df_merge['away_rest']
 
-# filter for the "modern" era of football, made the cutoff ~20 years ago
-df_modern = df_merge[df_merge['date'] > '2006-01-01']
+# filter for the "modern" era of football, made the cutoff at the turn of the century
+df_modern = df_merge[df_merge['date'] > '2000-01-01']
 
 # 2 = fifa world cup match, 1 = other, 0 = friendly exhibition
 conditions = [
@@ -165,8 +165,8 @@ weight_dict = {
 sample_weights = y_train.map(weight_dict)
 
 model = XGBClassifier(
-    n_estimators=180, 
-    learning_rate=0.05, 
+    n_estimators=200, 
+    learning_rate=0.03, 
     max_depth=4, 
     random_state=7,
     objective='multi:softmax',
@@ -181,17 +181,17 @@ print(f"XGBoost Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
 
 # results:
-# xgboost baseline accuracy: 57.13%
+# xgboost baseline accuracy: 57.10%
 
 #              precision    recall  f1-score   support
 #
-#    away win       0.60      0.47      0.53      1009
-#        draw       0.32      0.32      0.32       847
-#    home win       0.67      0.75      0.71      1729
+#    away win       0.59      0.47      0.52      1301
+#        draw       0.32      0.32      0.32      1093
+#    home win       0.67      0.76      0.71      2205
 
-#    accuracy                           0.57      3585
-#   macro avg       0.53      0.52      0.52      3585
-#     wtd avg       0.57      0.57      0.57      3585
+#    accuracy                           0.57      4599
+#   macro avg       0.53      0.51      0.52      4599
+#     wtd avg       0.56      0.57      0.56      4599
 
 # save the model for the api
 joblib.dump(model, 'xgboost_worldcup_model.pkl')
