@@ -166,8 +166,8 @@ POST /api/head-to-head
 
 ```json
 {
-  "home_team": "Mexico",
-  "away_team": "South Africa",
+  "home_team": "United States",
+  "away_team": "Paraguay",
   "is_neutral": 0
 }
 ```
@@ -176,11 +176,13 @@ POST /api/head-to-head
 
 ```json
 {
-  "home_win": 0.47,
-  "draw": 0.28,
-  "away_win": 0.25,
-  "expected_points_home": 1.69,
-  "expected_points_away": 1.03
+  "home_team": "United States",
+  "away_team": "Paraguay",
+  "probabilities": {
+    "away_win": 0.279,
+    "draw": 0.385,
+    "home_win": 0.336
+  }
 }
 ```
 
@@ -200,16 +202,16 @@ GET /api/simulate/groups
 
 ```json
 {
-  "Group A": [
-    {
-      "team": "Mexico",
-      "xPts": 5.8
+  "A": {
+    "Mexico": {
+      "xPts": 6.24,
+      "matches_played": 3
     },
-    {
-      "team": "Switzerland",
-      "xPts": 5.1
-    }
-  ]
+    "South Africa": {
+      "xPts": 1.62,
+      "matches_played": 3
+    },
+  }
 }
 ```
 
