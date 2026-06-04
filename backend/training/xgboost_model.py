@@ -180,6 +180,19 @@ prediction = model.predict(X_test)
 print(f"XGBoost Baseline Accuracy: {accuracy_score(y_test, prediction):.2%}\n")
 print(classification_report(y_test, prediction, target_names=['Away Win', 'Draw', 'Home Win']))
 
+# results:
+# xgboost baseline accuracy: 57.13%
+
+#              precision    recall  f1-score   support
+#
+#    away win       0.60      0.47      0.53      1009
+#        draw       0.32      0.32      0.32       847
+#    home win       0.67      0.75      0.71      1729
+
+#    accuracy                           0.57      3585
+#   macro avg       0.53      0.52      0.52      3585
+#     wtd avg       0.57      0.57      0.57      3585
+
 # save the model for the api
 joblib.dump(model, 'xgboost_worldcup_model.pkl')
 print("Model saved successfully as xgboost_worldcup_model.pkl")
