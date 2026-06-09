@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 import json
 from services.feature_builder import FeatureBuilder
+from services.monte_carlo import MonteCarloEngine
 
 app = FastAPI(title="World Cup Simulator API")
 
@@ -97,3 +98,27 @@ def simulate_group_stage():
             scoreboard[group][team]["xPts"] = round(scoreboard[group][team]["xPts"], 2)
             
     return scoreboard
+
+@app.get("/api/simulate/monte-carlo")
+def run_monte_carlo():
+    col_names = ['date', 'home_team', 'away_team', 'home_score', 'away_score', 'tournament', 'city', 'country', 'neutral']
+    schedule = pd.read_csv('data/worldcup.csv', header=None, names=col_names)
+    
+    # create a flat list of all 48 valid teams
+    all_teams = [team for group in tournament_groups.values() for team in group]
+    
+    # filter the schedule to only include matches where both teams are real
+    group_stage_schedule = schedule[
+        schedule['home_team'].isin(all_teams) & 
+        schedule['away_team'].isin(all_teams)
+    ]
+    
+    # pass the filtered schedule instead of the raw schedule
+    mc_engine = MonteCarloEngine(tournament_groups, group_stage_schedule, model, feature_builder)
+    
+    # run the simulation with 1k iterations for the first test so it's faster
+    advancement_probabilities = mc_engine.run_simulation(iterations=1000)
+    
+    sorted_probs = dict(sorted(advancement_probabilities.items(), key=lambda item: item[1]['Reach_R32_Percent'], reverse=True))
+    
+    return sorted_probs
