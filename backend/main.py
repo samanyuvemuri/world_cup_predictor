@@ -119,6 +119,6 @@ def run_monte_carlo():
     # run the simulation with 1k iterations for the first test so it's faster
     advancement_probabilities = mc_engine.run_simulation(iterations=1000)
     
-    sorted_probs = dict(sorted(advancement_probabilities.items(), key=lambda item: item[1]['Reach_R32_Percent'], reverse=True))
+    sorted_probs = dict(sorted(advancement_probabilities.items(), key=lambda item: item[1]['Champion'], reverse=True))
     
     return sorted_probs
