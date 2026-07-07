@@ -292,6 +292,26 @@ Selected for superior multiclass classification performance and probability cali
 
 ---
 
+## 📈 Quantitative Backtesting & Market Dynamics
+
+While traditional ML metrics provide a surface-level view of model performance, this engine was rigorously stress-tested as a true quantitative pricing model. 
+
+The XGBoost predicted probabilities were backtested against historical bookmaker closing lines (devigged to isolate the true market probability) across the entire 72-match World Cup group stage.
+
+**Group Stage Backtest Results:**
+* **Strategy:** 1-unit flat stake on +EV (Expected Value) edges
+* **Bets Placed:** 72
+* **Hit Rate:** 26.4% (19 wins / 53 losses)
+* **Cumulative PnL:** +17.651 units
+* **Return on Investment (ROI):** 24.5%
+
+### Limitations & Motivation Asymmetry
+The backtest revealed a fascinating market inefficiency in Round 3 of the group stage. The model successfully identified mispriced tail events (draws and heavy underdogs) to surge to a +30.5 unit profit through Rounds 1 and 2. 
+
+However, Round 3 introduced a 13-unit drawdown. This perfectly illustrates **motivation asymmetry**—the betting market aggressively adjusted closing lines for "dead rubber" matches (eliminated teams) and "rest games" (teams resting stars after qualifying). Because this model relies purely on ELO and historical goal differentials, it lacked the feature engineering to capture this human element. Future iterations will look to incorporate categorical features like `points_needed_to_advance` to account for these late-stage market adjustments.
+
+---
+
 ## 🗺️ Roadmap
 
 ### Completed
